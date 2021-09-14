@@ -12,6 +12,13 @@
 #define CONST_SHA512 "sha512"
 #define CONST_MD5    "md5"
 
+typedef struct{
+    char device_mac[18]; /* MAC Address*/
+    char device_mac_sha512[64]; /* SHA512 DIGEST*/
+    char device_mac_md5[16]; /* MD5 DIGEST */
+    uint8_t device_id[16]; /* aes 256 bit */
+}Digest_t;
+
 /* parameters-> data, data_length, digest, algorithm name*/
 uint8_t* Message_Digest(const uint8_t*, size_t, uint8_t*, const char*);
 /* parameters-> data, data_length, cipher, iv, key*/
@@ -22,6 +29,10 @@ uint8_t* (*algo_executor)(const uint8_t*, size_t, uint8_t*);
 void main_command_list(void);
 void device_activator_wizard(void);
 void device_authenticator_wizard(void);
+void digest_helper(Digest_t*);
+void map(const char*, uint8_t*);
+void ignore_stream(void);
+void print_digest(const uint8_t*, size_t);
 char* to_lowercase(const char*);
 void die_with_message(const char*);
 
