@@ -46,26 +46,81 @@ void main_command_list(void){
             break;
         case 3:
             exit(EXIT_SUCCESS);
+            break;
         default:
             fprintf(stderr,"Error: Invalid Command.\n");
     }
 }
 void device_activator_wizard(void){
-
-    char device_mac[17]; /* MAC Address*/
-    char device_mac_sha512[64]; /* SHA512 DIGEST*/
-    char device_mac_md5[16]; /* MD5 DIGEST */
+    char block[80];
+    Digest_t* msg_digest = malloc(sizeof(Digest_t));
+    //ignore_stream(); /* discard input buffer */
     fprintf(stdout,"Enter Qualified MAC Address: ");
-    fscanf(stdout,"%s", device_mac);
-    Message_Digest(device_mac, 8, device_mac_md5, CONST_MD5);
-    Message_Digest(&device_mac[8], 17, device_mac_sha512, CONST_SHA512);
-    fprintf(stdout,"Device: %s\n", device_mac);
-    fprintf(stdout,"Device SHA512: %s\n", device_mac_sha512);
-    fprintf(stdout,"Device MD5: %s\n", device_mac_md5);
+    fscanf(stdin,"%s", msg_digest->device_mac);
+    //msg_digest->device_mac[18] 
+    digest_helper(msg_digest); /* SHA512 AND MD5 Helper function */
+
+    /* DEBUG MODE */
+    fprintf(stdout,"Device: %s\n", msg_digest->device_mac);
+    fprintf(stdout,"Device SHA512: \n");
+        print_digest(msg_digest->device_mac_sha512, 64);
+    fprintf(stdout,"Device MD5: ");
+        print_digest(msg_digest->device_mac_md5, 16);
+    fprintf(stdout,"Device ID: ");
+        print_digest(msg_digest->device_id, 16);
+    free(msg_digest);
 
 }
+//28:ee:52:04:e3:c5
 void device_authenticator_wizard(void){
+    char input_digest[32];
+    uint8_t device_id[16];
+    Digest_t* msg_digest = malloc(sizeof(Digest_t));
+    //ignore_stream(); /* discard input buffer */
+    fprintf(stdout,"Enter Qualified MAC Address: ");
+        fscanf(stdin,"%s", msg_digest->device_mac);
+    fprintf(stdout,"Enter Device ID: ");
+        fscanf(stdin,"%s", input_digest);
+    /* compute digest */
+    digest_helper(msg_digest);
+    /* string to hexify */
+    map(input_digest,device_id);
+    /* compare device_ids*/
+    if(memcmp(device_id, msg_digest->device_id, 16)== 0){
+        fprintf(stdout,"Device Authenticated.\n");
+    }else{
+        fprintf(stdout,"Device Authentication Failed.\n");
+    }
+}
+void digest_helper(Digest_t* msg){
+    char block[80];
+    
+    Message_Digest(msg->device_mac, 8, msg->device_mac_md5, CONST_MD5);
+    Message_Digest(&msg->device_mac[8], 17, msg->device_mac_sha512, CONST_SHA512);
+    
+    memcpy(block, msg->device_mac_sha512, 64);
+    memcpy(&block[64], msg->device_mac_md5, 16);
+    
+    MD5(block, 80, msg->device_id); /* compute device id*/
+    
+}
+void map(const char* string, uint8_t* output){
+    char bytes[2];
+    for(int i=0, j=0; i < 32; i += 2, j++){
+        bytes[0] = string[i];
+        bytes[1] = string[i+1];
+        output[j] = strtol(bytes,'\0', 16);
+    }
+}
 
+void ignore_stream(void){
+    while ( getchar() != '\n' );
+}
+void print_digest(const uint8_t* digest, size_t count){
+    for(int i = 0; i < count; i++){
+        fprintf(stdout, "%x", digest[i]);
+    }
+    fprintf(stdout,"\n");
 }
 
 char* to_lowercase(const char* string){
